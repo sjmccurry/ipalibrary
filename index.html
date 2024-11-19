@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Repository</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 10px;
+    }
+    .controls input {
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .controls select {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .app-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+    .app-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      width: 350px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .app-card img {
+      width: 100px;
+      height: 100px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+    }
+    .app-card h2 {
+      font-size: 22px;
+      margin: 0 0 10px;
+      text-align: center;
+    }
+    .app-card p {
+      font-size: 14px;
+      text-align: center;
+      margin: 5px 0;
+      color: #555;
+    }
+    .app-card .developer {
+      font-style: italic;
+      color: #888;
+      margin-bottom: 10px;
+    }
+    .app-card .version {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .app-card button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .app-card button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>App Repository</h1>
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search apps by name or description..." />
+    <select id="sort">
+      <option value="none">Sort by</option>
+      <option value="size-asc">Size (Smallest to Largest)</option>
+      <option value="size-desc">Size (Largest to Smallest)</option>
+      <option value="date-desc">Date Updated (Newest to Oldest)</option>
+      <option value="date-asc">Date Updated (Oldest to Newest)</option>
+    </select>
+  </div>
+  <div class="app-container" id="app-container">Loading apps...</div>
+
+  <script>
+    let apps = [];
+
+    function renderApps(filteredApps) {
+      const appContainer = document.getElementById('app-container');
+      appContainer.innerHTML = '';
+
+      if (filteredApps.length === 0) {
+        appContainer.textContent = 'No apps found.';
+        return;
+      }
+
+      filteredApps.forEach(app => {
+        const card = document.createElement('div');
+        card.className = 'app-card';
+
+        const icon = document.createElement('img');
+        icon.src = app.iconURL;
+        icon.alt = `${app.name} Icon`;
+
+        const title = document.createElement('h2');
+        title.textContent = app.name;
+
+        const developer = document.createElement('p');
+        developer.className = 'developer';
+        developer.textContent = `By: ${app.developerName}`;
+
+        const version = document.createElement('p');
+        version.className = 'version';
+        version.textContent = `Version: ${app.version} (${app.versionDate})`;
+
+        const description = document.createElement('p');
+        description.textContent = app.localizedDescription;
+
+        const size = document.createElement('p');
+        size.textContent = `Size: ${(app.size / (1024 * 1024)).toFixed(2)} MB`;
+
+        const downloadButton = document.createElement('button');
+        downloadButton.textContent = 'Download';
+        downloadButton.onclick = () => {
+          window.open(app.downloadURL, '_blank');
+        };
+
+        card.appendChild(icon);
+        card.appendChild(title);
+        card.appendChild(developer);
+        card.appendChild(version);
+        card.appendChild(size);
+        card.appendChild(description);
+        card.appendChild(downloadButton);
+
+        appContainer.appendChild(card);
+      });
+    }
+
+    function sortApps(filteredApps, sortOption) {
+      if (sortOption === 'size-asc') {
+        return filteredApps.sort((a, b) => a.size - b.size);
+      } else if (sortOption === 'size-desc') {
+        return filteredApps.sort((a, b) => b.size - a.size);
+      } else if (sortOption === 'date-asc') {
+        return filteredApps.sort((a, b) => new Date(a.versionDate) - new Date(b.versionDate));
+      } else if (sortOption === 'date-desc') {
+        return filteredApps.sort((a, b) => new Date(b.versionDate) - new Date(a.versionDate));
+      }
+      return filteredApps;
+    }
+
+    fetch('data.json')
+      .then(response => response.json())
+      .then(data => {
+        apps = data.apps;
+        renderApps(apps);
+      })
+      .catch(error => {
+        console.error('Error loading JSON:', error);
+        document.getElementById('app-container').textContent = "Failed to load app data.";
+      });
+
+    document.getElementById('search').addEventListener('input', (event) => {
+      const query = event.target.value.toLowerCase();
+      const sortOption = document.getElementById('sort').value;
+      let filteredApps = apps.filter(app =>
+        app.name.toLowerCase().includes(query) ||
+        app.localizedDescription.toLowerCase().includes(query)
+      );
+      filteredApps = sortApps(filteredApps, sortOption);
+      renderApps(filteredApps);
+    });
+
+    document.getElementById('sort').addEventListener('change', (event) => {
+      const sortOption = event.target.value;
+      const query = document.getElementById('search').value.toLowerCase();
+      let filteredApps = apps.filter(app =>
+        app.name.toLowerCase().includes(query) ||
+        app.localizedDescription.toLowerCase().includes(query)
+      );
+      filteredApps = sortApps(filteredApps, sortOption);
+      renderApps(filteredApps);
+    });
+  </script>
+</body>
+</html>
